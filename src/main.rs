@@ -79,7 +79,7 @@ use std::env::args;
 use std::path::Path;
 use std::sync::{Arc, RwLock};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 
 // local modules
 mod ansi;
@@ -594,6 +594,7 @@ fn main() {
             let paused = run_interval.paused.clone();
             let interval = run_interval.interval.clone();
             drop(run_interval); // We manually drop here or else it locks anything else from reading/writing the interval
+            let mut time_to_sleep: f64 = interval;
 
             if paused == false {
                 // Create cmd..
@@ -611,11 +612,15 @@ fn main() {
                 // Set is exec flag.
                 exe.is_exec = is_exec;
 
+                let before_start = SystemTime::now();
                 // Exec command
                 exe.exec_command();
+                let elapsed = SystemTime::now().duration_since(before_start).unwrap();
+                time_to_sleep -= elapsed.as_secs_f64();
+
             }
 
-            std::thread::sleep(Duration::from_secs_f64(interval));
+            std::thread::sleep(Duration::from_secs_f64(time_to_sleep));
         });
     }
 
